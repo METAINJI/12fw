@@ -466,8 +466,7 @@ function initApp() {
             }
 
         }
-
-        // 팔레트 색상이 모두 겹치면 임의의 색조를 새로 만듭니다.
+        
         const randomHue =
             Math.floor(Math.random() * 360);
 
@@ -1020,7 +1019,6 @@ function initApp() {
         const firstOfMonth =
             new Date(year, month, 1);
 
-        // 월요일을 한 주의 시작으로 맞춥니다. (일=0 ... 토=6 => 월=0 ... 일=6)
         const firstWeekday =
             (firstOfMonth.getDay() + 6) % 7;
 
@@ -1143,7 +1141,6 @@ function initApp() {
                     }
                 );
 
-            // 겹치는 기간의 막대끼리 부딪히지 않도록 줄(레인)을 배정합니다.
             const lanes = [];
 
             segments.forEach(
@@ -1759,6 +1756,8 @@ function initApp() {
 
                 sessionExpiresAt =
                     new Date(data.expires_at);
+
+                saveToken(data.token, data.expires_at);
 
                 updateSessionUI();
 
