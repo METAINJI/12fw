@@ -1,14 +1,4 @@
-// ============================================================
-// 4단계: 인증(로그인 상태) 관리 + 앱 진입점
-//
-// 예전에는 서버(Jinja)가 로그인 여부에 따라 다른 HTML을 내려줬지만,
-// 이제는 정적 페이지 하나뿐이라 로그인 화면/앱 화면을 여기서 JS로
-// 전환합니다. 토큰은 localStorage에 저장하고, 모든 API 요청에
-// Authorization: Bearer 헤더로 실어 보냅니다.
-// ============================================================
-
-// ⚠️ 여기를 본인의 Cloudflare Worker 주소로 바꿔주세요.
-const API_BASE = "https://vacation-calendar-api.YOUR-SUBDOMAIN.workers.dev";
+const API_BASE = "https://vacation-calendar-api.pcofjeongchan.workers.dev";
 
 const TOKEN_KEY = "vacation_token";
 const TOKEN_EXPIRES_KEY = "vacation_token_expires_at";
