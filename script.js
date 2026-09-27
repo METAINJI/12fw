@@ -32,7 +32,6 @@ function authHeaders() {
     return { Authorization: "Bearer " + getToken() };
 }
 
-// 401(인증 만료/실패) 응답을 공통으로 처리: 토큰을 지우고 로그인 화면으로 되돌립니다.
 async function apiFetch(path, options) {
 
     const response = await fetch(API_BASE + path, options || {});
@@ -605,8 +604,6 @@ function initApp() {
 
             }
             catch (error) {
-
-                // 일부 브라우저에서는 이미 열려 있는 경우 예외가 발생할 수 있어 무시합니다.
 
             }
 
@@ -1960,8 +1957,6 @@ function initApp() {
 
             if (!colorValue) {
 
-                // 색상을 정하지 않았다면, 같은 그룹(같은 달의 일반 휴가 /
-                // 무기한 휴가) 안에서 겹치지 않는 색상을 자동으로 고릅니다.
                 const sameGroupColors =
                     allVacations.filter(
                         function (v) {
