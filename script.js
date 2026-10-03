@@ -1040,7 +1040,7 @@ function initApp() {
 
         const WEEK_PADDING = 5;
 
-        const MIN_WEEK_HEIGHT = 72;
+        const MIN_WEEK_HEIGHT = 120;
 
         for (let w = 0; w < totalWeeks; w++) {
 
@@ -1338,9 +1338,9 @@ function initApp() {
             ).sort(
                 function (a, b) {
 
-                    return a.start_date < b.start_date
+                    return a.start_date > b.start_date
                         ? -1
-                        : a.start_date > b.start_date
+                        : a.start_date < b.start_date
                             ? 1
                             : 0;
 
