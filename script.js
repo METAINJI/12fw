@@ -2,6 +2,17 @@ const API_BASE = "https://vacation-calendar-api.pcofjeongchan.workers.dev";
 
 const TOKEN_KEY = "vacation_token";
 const TOKEN_EXPIRES_KEY = "vacation_token_expires_at";
+const DEVICE_ID_KEY = "vacation_device_id";
+
+function getDeviceId() {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+        id = (crypto.randomUUID && crypto.randomUUID())
+            || (Date.now().toString(36) + Math.random().toString(36).slice(2, 12));
+        localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return id;
+}
 
 function getToken() {
     return localStorage.getItem(TOKEN_KEY);
@@ -81,7 +92,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const response = await fetch(API_BASE + "/api/login", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ code: codeInput.value })
+                    body: JSON.stringify({ code: codeInput.value, device_id: getDeviceId() })
                 });
 
                 const data = await response.json();
@@ -697,7 +708,16 @@ function initApp() {
             vacation.person;
 
         detailReason.textContent =
-            vacation.reason;
+            vacation.reason
+            + (
+                vacation.indefinite
+                    ? ""
+                    : vacation.vacation_type === "regular"
+                        ? " (정기)"
+                        : vacation.vacation_type === "irregular"
+                            ? " (비정기)"
+                            : ""
+            );
 
         detailDate.textContent =
             vacation.indefinite
@@ -708,14 +728,7 @@ function initApp() {
                 )
                 : formatDate(vacation.start_date)
                     + " ~ "
-                    + formatDate(vacation.end_date)
-                    + (
-                        vacation.vacation_type === "regular"
-                            ? " (정기 휴가)"
-                            : vacation.vacation_type === "irregular"
-                                ? " (비정기 휴가)"
-                                : ""
-                    );
+                    + formatDate(vacation.end_date);
 
         detailNote.textContent =
             vacation.note || "없음";
@@ -825,6 +838,204 @@ function initApp() {
     );
 
 
+    const reportText =
+        document.getElementById("reportText");
+
+
+    function formatReportDate(iso) {
+
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+
+        if (!m) {
+            return "";
+        }
+
+        return m[1] + "년 " + Number(m[2]) + "월 " + Number(m[3]) + "일";
+
+    }
+
+
+    function buildReport() {
+
+        const typeLabel =
+            indefinite.checked
+                ? ""
+                : vacationType === "regular"
+                    ? " (정기)"
+                    : " (비정기)";
+
+        let period;
+
+        if (indefinite.checked) {
+
+            period =
+                startDate.value
+                    ? formatReportDate(startDate.value) + "부터 무기한"
+                    : "무기한";
+
+        }
+        else {
+
+            period =
+                formatReportDate(startDate.value)
+                + " ~ "
+                + formatReportDate(endDate.value);
+
+        }
+
+        return "휴가 대상자 : " + person.value
+            + "\n휴가 사유 : " + reason.value + typeLabel
+            + "\n휴가 기간 : " + period;
+
+    }
+
+
+    function refreshReport() {
+
+        reportText.value = buildReport();
+
+    }
+
+
+    function reportValue(line) {
+
+        const idx = line.search(/[:：]/);
+
+        const raw = idx >= 0 ? line.slice(idx + 1) : line;
+
+        return raw.replace(/<@[!&]?\d+>/g, "").trim();
+
+    }
+
+
+    function reportIsoDate(y, m, d) {
+
+        const month = Number(m);
+        const day = Number(d);
+
+        if (month < 1 || month > 12 || day < 1 || day > 31) {
+            return "";
+        }
+
+        return y + "-" + String(month).padStart(2, "0")
+            + "-" + String(day).padStart(2, "0");
+
+    }
+
+
+    function parseReport(text) {
+
+        const lines = text
+            .split(/\r?\n/)
+            .map(function (line) { return line.trim(); })
+            .filter(function (line) {
+                return line && !/^[-=_~\s]+$/.test(line);
+            });
+
+        lines.forEach(function (line, index) {
+
+            const label =
+                line.slice(0, Math.max(line.search(/[:：]/), 0))
+                    .replace(/\s+/g, "");
+
+            const key =
+                label.includes("대상자") ? "person"
+                : label.includes("사유") ? "reason"
+                : label.includes("기간") ? "period"
+                : ["person", "reason", "period"][index];
+
+            const value = reportValue(line);
+
+            if (key === "person") {
+
+                const name = value.split(/\s+/)[0] || "";
+
+                person.value = name.slice(0, person.maxLength);
+
+            }
+            else if (key === "reason") {
+
+                const m = /\(\s*(비정기|정기)\s*\)\s*$/.exec(value);
+
+                if (m) {
+                    setVacationType(m[1] === "정기" ? "regular" : "irregular");
+                }
+
+                reason.value =
+                    value
+                        .replace(/\(\s*(비정기|정기)\s*\)\s*$/, "")
+                        .replace(/\s+/g, " ")
+                        .trim()
+                        .slice(0, reason.maxLength);
+
+            }
+            else if (key === "period") {
+
+                const compact =
+                    value
+                        .replace(/\s+/g, "")
+                        .replace(/(\d{4})-(\d{1,2})-(\d{1,2})/g, "$1년$2월$3일");
+
+                const dates =
+                    Array.from(
+                        compact.matchAll(/(\d{4})년(\d{1,2})월(\d{1,2})일/g)
+                    )
+                        .map(function (m) { return reportIsoDate(m[1], m[2], m[3]); })
+                        .filter(Boolean);
+
+                if (compact.includes("무기한")) {
+
+                    indefinite.checked = true;
+
+                    applyIndefiniteState(true);
+
+                    startDate.value = dates[0] || "";
+
+                }
+                else if (dates.length) {
+
+                    indefinite.checked = false;
+
+                    applyIndefiniteState(false);
+
+                    startDate.value = dates[0];
+
+                    endDate.value = dates[1] || dates[0];
+
+                }
+
+            }
+
+        });
+
+        syncCharCounters();
+
+    }
+
+
+    reportText.addEventListener(
+        "input",
+        function () {
+            parseReport(reportText.value);
+        }
+    );
+
+    [person, reason].forEach(function (el) {
+        el.addEventListener("input", refreshReport);
+    });
+
+    [startDate, endDate].forEach(function (el) {
+        el.addEventListener("input", refreshReport);
+        el.addEventListener("change", refreshReport);
+    });
+
+    indefinite.addEventListener("change", refreshReport);
+
+    regularTypeButton.addEventListener("click", refreshReport);
+
+    irregularTypeButton.addEventListener("click", refreshReport);
+
+
     function openAddModal() {
 
         document.getElementById("modalTitle")
@@ -857,6 +1068,8 @@ function initApp() {
         formError.classList.add("hidden");
 
         deleteButton.classList.add("hidden");
+
+        refreshReport();
 
         vacationModal.classList.remove("hidden");
     }
@@ -910,6 +1123,8 @@ function initApp() {
         deleteButton.classList.remove("hidden");
 
         detailModal.classList.add("hidden");
+
+        refreshReport();
 
         vacationModal.classList.remove("hidden");
     }
