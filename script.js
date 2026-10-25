@@ -857,6 +857,15 @@ function initApp() {
 
     function buildReport() {
 
+        if (
+            !person.value
+            && !reason.value
+            && !startDate.value
+            && !endDate.value
+        ) {
+            return "";
+        }
+
         const typeLabel =
             indefinite.checked
                 ? ""
@@ -1069,7 +1078,7 @@ function initApp() {
 
         deleteButton.classList.add("hidden");
 
-        refreshReport();
+        reportText.value = "";
 
         vacationModal.classList.remove("hidden");
     }
@@ -1124,7 +1133,7 @@ function initApp() {
 
         detailModal.classList.add("hidden");
 
-        refreshReport();
+        reportText.value = "";
 
         vacationModal.classList.remove("hidden");
     }
